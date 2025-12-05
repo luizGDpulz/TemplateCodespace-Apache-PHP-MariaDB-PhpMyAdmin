@@ -107,12 +107,11 @@ configure_mysql() {
     fi
     
     # Executar SQL de configuração (idempotente)
-    $mysql_cmd -u root <<SQL || {
-        log_error "Falha ao executar SQL de configuração"
-        return 1
-    }
--- Configurar senha do root
-ALTER USER IF EXISTS 'root'@'localhost' IDENTIFIED BY '${root_pass}';
+    # MariaDB usa unix_socket por padrão, precisamos executar como usuário mysql do sistema
+    # ou usar sudo -u root para assumir identidade de root do sistema
+    if ! sudo -i $mysql_cmd <<SQL; then
+-- Configurar senha do root (permitir autenticação por senha também)
+ALTER USER IF EXISTS 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('${root_pass}');
 FLUSH PRIVILEGES;
 
 -- Criar banco de dados
@@ -133,6 +132,9 @@ GRANT ALL PRIVILEGES ON \`${db_name}\`.* TO '${db_user}'@'%';
 -- Aplicar mudanças
 FLUSH PRIVILEGES;
 SQL
+        log_error "Falha ao executar SQL de configuração"
+        return 1
+    fi
     
     log_info "Configurações do MySQL/MariaDB aplicadas com sucesso!"
     return 0
