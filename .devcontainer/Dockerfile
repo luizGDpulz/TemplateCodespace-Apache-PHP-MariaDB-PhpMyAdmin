@@ -33,6 +33,9 @@ WORKDIR /var/www/html
 
 # Não altera DocumentRoot aqui (será feito no init.sh se houver /public).
 
-# Configuração do phpMyAdmin já está incluída via apt
-# phpMyAdmin é instalado em /usr/share/phpmyadmin
-RUN ln -s /usr/share/phpmyadmin /var/www/phpmyadmin
+# Configuração do phpMyAdmin
+# phpMyAdmin é instalado em /usr/share/phpmyadmin via apt
+# Cria link simbólico para manter compatibilidade com init.sh
+RUN ln -s /usr/share/phpmyadmin /var/www/phpmyadmin \
+  && ln -s /etc/phpmyadmin/apache.conf /etc/apache2/conf-available/phpmyadmin.conf \
+  && a2enconf phpmyadmin
