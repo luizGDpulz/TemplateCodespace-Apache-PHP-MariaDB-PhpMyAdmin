@@ -1,0 +1,17 @@
+{
+  "name": "PHP + Apache + MySQL + PhpMyAdmin (single container, start-only)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [80, 3306],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "felixfbecker.php-debug"
+      ]
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/init.sh ${localWorkspaceFolderBasename}"
+}
