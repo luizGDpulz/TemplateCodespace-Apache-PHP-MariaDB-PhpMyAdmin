@@ -1,32 +1,28 @@
-FROM php:8.2-apache
+FROM debian:bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instala MariaDB + cliente, dependências PHP e phpMyAdmin
+# Instala Apache, PHP do repositório com extensões comuns, MariaDB e phpMyAdmin
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      mariadb-server mariadb-client \
-      git zip unzip libzip-dev \
-      wget \
-  && docker-php-ext-install pdo pdo_mysql mysqli \
+      apache2 \
+      mariadb-server \
+      git zip unzip curl wget \
+      php php-cli php-mysql php-mbstring php-zip php-gd php-xml php-curl php-intl \
+      libapache2-mod-php \
+      phpmyadmin \
   && a2enmod rewrite \
-  && rm -rf /var/lib/apt/lists/* \
-  # Instala phpMyAdmin manualmente
-  && mkdir -p /var/www/phpmyadmin \
-  && wget -O /tmp/phpmyadmin.zip "https://files.phpmyadmin.net/phpMyAdmin/5.2.1/phpMyAdmin-5.2.1-all-languages.zip" \
-  && unzip /tmp/phpmyadmin.zip -d /tmp/ \
-  && cp -r /tmp/phpMyAdmin-5.2.1-all-languages/* /var/www/phpmyadmin/ \
-  && rm -rf /tmp/phpmyadmin.zip /tmp/phpMyAdmin-5.2.1-all-languages
+  && rm -rf /var/lib/apt/lists/*
 
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Install git-lfs for devcontainer (ensure git-lfs available inside container)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates gnupg2 \
+    ca-certificates gnupg2 \
   && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
   && apt-get install -y git-lfs \
   && git lfs install --system \
-  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /var/lib/apt/lists/*
 
 # Expor portas (informativo)
 EXPOSE 80 3306
@@ -36,6 +32,9 @@ WORKDIR /var/www/html
 
 # Não altera DocumentRoot aqui (será feito no init.sh se houver /public).
 
-# Adiciona alias do phpMyAdmin no Apache
-RUN echo "Alias /phpmyadmin /var/www/phpmyadmin\n<Directory /var/www/phpmyadmin>\n  Options Indexes FollowSymLinks\n  AllowOverride All\n  Require all granted\n</Directory>" > /etc/apache2/conf-available/phpmyadmin.conf \
+# Configuração do phpMyAdmin
+# phpMyAdmin é instalado em /usr/share/phpmyadmin via apt
+# Cria link simbólico para manter compatibilidade com init.sh
+RUN ln -s /usr/share/phpmyadmin /var/www/phpmyadmin \
+  && ln -s /etc/phpmyadmin/apache.conf /etc/apache2/conf-available/phpmyadmin.conf \
   && a2enconf phpmyadmin
